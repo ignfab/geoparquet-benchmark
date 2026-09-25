@@ -1,0 +1,46 @@
+# BD TOPO (bâtiments) servie par plusieurs hébergeurs
+sources:
+  gpf-chunk: https://data.geopf.fr/chunk/telechargement/download/BDTOPO_PQT/BDTOPO_TOUSTHEMES_3-5_GEOPARQUET_WGS84G_FRA_2026-06-15/batiment.parquet
+  ovh: https://prd-ign-mut-platreo.s3.sbg.io.cloud.ovh.net/public/batiment.parquet
+  nginx-s3-gateway: https://platreo.ign.fr/public/batiment.parquet
+  cquest: https://data.cquest.org/ign/bdtopo/geoparquet/batiment.parquet
+  gcp: https://storage.googleapis.com/geoparquet-restricted-bucket/IGN-06-2026/batiment.parquet
+
+# 5 requêtes SQL de test au plus.
+queries:
+  # min/max : selon le fichier, DuckDB lit la colonne (cquest : 786 row groups) ou répond avec les seules statistiques
+  # (colonnes du profil à « — »). avg(altitude_maximale_sol) force la lecture partout.
+  altitude: |
+    SELECT min(altitude_maximale_sol), max(altitude_maximale_sol) FROM $src
+  # Ne lit que la colonne bbox.
+  bbox: |
+    SELECT count(*) FROM $src
+    WHERE $bbox.xmin <= 3.4 AND $bbox.xmax >= 3.3 AND $bbox.ymin <= 47.4 AND $bbox.ymax >= 47.3
+  # Avec les géométries : bien plus volumineux.
+  # geometries: |
+  #   SELECT * FROM $src
+  #   WHERE $geom && ST_MakeEnvelope(3.3, 47.3, 3.4, 47.4)
+  #     AND ST_Intersects($geom, ST_MakeEnvelope(3.3, 47.3, 3.4, 47.4))
+  #     AND $bbox.xmin <= 3.4 AND $bbox.xmax >= 3.3 AND $bbox.ymin <= 47.4 AND $bbox.ymax >= 47.3
+
+# Nombre de threads duckdb
+threads: [8, 16]
+
+# Nombre de répétitions du benchmark
+runs: 1
+
+# Exécuter d'abord un run à froid, puis un run à chaud si warm: true
+# Ceci permet de valider la bonne utilisation du cache de DuckDB.
+warm: true
+
+# Durée maximale d'une requête SQL, en secondes (le délai d'une requête HTTP se règle avec http_timeout dans init)
+timeout: 600
+
+# Instructions SQL d'initialisation de DuckDB
+init:
+  # Jamais de téléchargement intégral si la lecture partielle échoue (défaut DuckDB : true, soit ~7 Gio ici).
+  - SET auto_fallback_to_full_download = false
+  # Délai d'une requête HTTP, en s (défaut DuckDB : 30, trop court via proxy.ign.fr).
+  - SET http_timeout = 120
+  # data.geopf.fr n'envoie ni ETag ni Last-Modified : sans ce réglage, le run chaud retélécharge tout.
+  # - SET validate_external_file_cache = 'NO_VALIDATION'
