@@ -1,6 +1,6 @@
 # BD TOPO (bâtiments) servie par plusieurs hébergeurs
 sources:
-  gpf-chunk: https://data.geopf.fr/chunk/telechargement/download/BDTOPO_PQT/BDTOPO_TOUSTHEMES_3-5_GEOPARQUET_WGS84G_FRA_2026-06-15/batiment.parquet
+  gpf-chunk: https://data.geopf.fr/chunk/telechargement/download/BDTOPO_PQT/BDTOPO_TOUSTHEMES_3-5_GEOPARQUET_WGS84G_FRA_2026-09-15/batiment.parquet
   ovh: https://prd-ign-mut-platreo.s3.sbg.io.cloud.ovh.net/public/batiment.parquet
   nginx-s3-gateway: https://platreo.ign.fr/public/batiment.parquet
   cquest: https://data.cquest.org/ign/bdtopo/geoparquet/batiment.parquet
